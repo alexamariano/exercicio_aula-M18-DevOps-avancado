@@ -1,16 +1,16 @@
 pipeline {
     agent any
     tools { nodejs "nodejs" }
-
-    //Redireciona o binário do Cypress para uma pasta segura no Workspace
+    
     environment {
         CYPRESS_CACHE_FOLDER = "${WORKSPACE}/cypress_cache"
+        //Desativa as animações que travam o CMD do Windows no Jenkins
+        CI = 'true' 
     }
 
     stages {
         stage("Clonar o hub de leitura integrado") {
             steps {
-                // Remove a pasta antiga se existir (Padrão Windows) e clona o backend
                 bat 'if exist hub-de-leitura-integrado2 rmdir /s /q hub-de-leitura-integrado2'
                 bat 'git clone --depth 1 https://github.com/EBAC-QE/hub-de-leitura-integrado2.git'
             }
@@ -20,7 +20,6 @@ pipeline {
             steps {
                 dir('hub-de-leitura-integrado2') {
                     bat 'call npm install'
-                    // Inicia o servidor em segundo plano no Windows (substitui o nohup)
                     bat 'start /B npm start'
                 }
             }
@@ -28,14 +27,15 @@ pipeline {
 
         stage("Clonar o projeto de teste (Seu repositório)") {
             steps {
-                bat 'if exist aula-M18-DevOps-avancado rmdir /s /q aula-M18-DevOps-avancado'
-                bat 'git clone --depth 1 https://github.com/alexamariano/aula-M18-DevOps-avancado.git'
+                // Atualizado com o nome do novo repositório
+                bat 'if exist exercicio_aula-M18-DevOps-avancado rmdir /s /q exercicio_aula-M18-DevOps-avancado'
+                bat 'git clone --depth 1 https://github.com/alexamariano/exercicio_aula-M18-DevOps-avancado.git'
             }
         }
 
         stage("Instalar dependências de teste") {
             steps {
-                dir('aula-M18-DevOps-avancado') {
+                dir('exercicio_aula-M18-DevOps-avancado/hub-de-leitura-teste-ui') {
                     bat 'call npm install'
                 }
             }
@@ -43,11 +43,8 @@ pipeline {
 
         stage('Executar os testes automatizados') {
             steps {
-                dir('aula-M18-DevOps-avancado') {
-                    // 1. Força a instalação do binário do Cypress no ambiente do Jenkins
+                dir('exercicio_aula-M18-DevOps-avancado/hub-de-leitura-teste-ui') {
                     bat 'call npx cypress install'
-                    
-                    // 2. Executa os testes
                     bat 'call npx cypress run'
                 }
             }
@@ -56,12 +53,9 @@ pipeline {
 
     post {
         always {
-            // Salva as evidências caso o Cypress tenha gerado
-            dir('aula-M18-DevOps-avancado') {
+            dir('exercicio_aula-M18-DevOps-avancado/hub-de-leitura-teste-ui') {
                 archiveArtifacts artifacts: 'cypress/screenshots/**/*.*,cypress/videos/**/*.*', allowEmptyArchive: true
             }
-          
-            // Derruba o processo do Node (servidor) para não travar a porta 3000 na próxima execução
             bat 'taskkill /F /IM node.exe || exit 0' 
         }
     }
