@@ -39,7 +39,10 @@ pipeline {
         stage('Executar os testes automatizados') {
             steps {
                 dir('aula-M18-DevOps-avancado') {
-                    // Executa o Cypress em modo headless
+                    // 1. Força a instalação do binário do Cypress no ambiente do Jenkins
+                    bat 'call npx cypress install'
+                    
+                    // 2. Executa os testes
                     bat 'call npx cypress run'
                 }
             }
