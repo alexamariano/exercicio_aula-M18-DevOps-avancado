@@ -1,0 +1,45 @@
+pipeline {
+    agent any
+    tools { nodejs "nodejs" }
+    
+    environment {
+        CYPRESS_CACHE_FOLDER = "${WORKSPACE}/cypress_cache"
+        CI = 'true' 
+    }
+
+    stages {
+        stage("Preparar Aplicação") {
+            steps {
+                // Sobe um nível para a raiz do workspace para clonar o backend
+                dir('..') {
+                    bat 'if exist hub-de-leitura-integrado2 rmdir /s /q hub-de-leitura-integrado2'
+                    bat 'git clone --depth 1 https://github.com/EBAC-QE/hub-de-leitura-integrado2.git'
+                    dir('hub-de-leitura-integrado2') {
+                        bat 'call npm install'
+                        bat 'start /B npm start'
+                    }
+                }
+            }
+        }
+
+        stage("Instalar dependências de teste") {
+            steps {
+                bat 'call npm install'
+            }
+        }
+
+        stage('Executar testes') {
+            steps {
+                bat 'call npx cypress install'
+                bat 'call npx cypress run'
+            }
+        }
+    }
+
+    post {
+        always {
+            archiveArtifacts artifacts: 'cypress/screenshots/**/*.*,cypress/videos/**/*.*', allowEmptyArchive: true
+            bat 'taskkill /F /IM node.exe || exit 0' 
+        }
+    }
+}
