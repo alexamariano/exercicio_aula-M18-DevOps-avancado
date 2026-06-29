@@ -2,43 +2,31 @@ pipeline {
     agent any
     tools { nodejs "nodejs" }
 
-    environment {
-        CYPRESS_CACHE_FOLDER = "C:\\CypressCache"
-        CI = '1' 
-    }
-
     stages {
-        stage("Preparar Aplicação") {
+        stage("Preparar Backend") {
             steps {
-                dir('..\\hub-de-leitura-integrado') {
-                    bat '''
-                        call npm install
-                        start /B npm start
-                    '''
+                dir('hub-de-leitura-integrado') {
+                    bat 'call npm install'
+                    bat 'start /B npm start'
                 }
             }
         }
 
-        stage("Instalar dependencias de teste") {
+        stage("Executar Testes") {
             steps {
-                bat 'call npm install'
-            }
-        }
-
-        stage('Executar os testes automatizados') {
-            steps {
-                bat '''
-                    call npx cypress install --force
-                    call npm test
-                '''
+                dir('hub-de-leitura-teste-ui') {
+                    bat 'call npm install'
+                    bat 'call npx cypress run'
+                }
             }
         }
     }
 
     post {
         always {
-            // Se houver screenshots ou vídeos, o Jenkins vai arquivar
-            archiveArtifacts artifacts: 'cypress/screenshots/**/*.*,cypress/videos/**/*.*', allowEmptyArchive: true
+            dir('hub-de-leitura-teste-ui') {
+                archiveArtifacts artifacts: 'cypress/screenshots/**/*.*,cypress/videos/**/*.*', allowEmptyArchive: true
+            }
             bat 'taskkill /F /IM node.exe || exit 0'
         }
     }
