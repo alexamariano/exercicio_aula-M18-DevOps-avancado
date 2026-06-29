@@ -3,7 +3,8 @@ pipeline {
     tools { nodejs "nodejs" }
     
     environment {
-        CYPRESS_CACHE_FOLDER = "${WORKSPACE}\\cypress_cache"
+        // Cache em um caminho curto para fugir do limite do Windows
+        CYPRESS_CACHE_FOLDER = "C:\\CypressCache"
         CI = '1' 
     }
 
@@ -20,7 +21,6 @@ pipeline {
         stage("Instalar dependências de teste") {
             steps {
                 dir('hub-de-leitura-teste-ui') {
-               // Desativa o bloqueio de segurança do NPM antes de instalar
                     bat 'call npm config set ignore-scripts false'
                     bat 'call npm install'
                 }
@@ -30,7 +30,7 @@ pipeline {
         stage('Executar testes') {
             steps {
                 dir('hub-de-leitura-teste-ui') {
-                    //Força a instalação do binário e verifica a integridade dele
+                    // Força a instalação na nova pasta curta e verifica se deu certo
                     bat 'call npx cypress install --force'
                     bat 'call npx cypress verify'
                     
