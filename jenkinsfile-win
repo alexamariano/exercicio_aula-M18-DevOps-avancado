@@ -2,6 +2,11 @@ pipeline {
     agent any
     tools { nodejs "nodejs" }
 
+    //Redireciona o binário do Cypress para uma pasta segura no Workspace
+    environment {
+        CYPRESS_CACHE_FOLDER = "${WORKSPACE}/cypress_cache"
+    }
+
     stages {
         stage("Clonar o hub de leitura integrado") {
             steps {
