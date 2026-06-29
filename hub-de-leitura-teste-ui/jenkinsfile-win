@@ -1,0 +1,60 @@
+pipeline {
+    agent any
+    tools { nodejs "nodejs" }
+
+    stages {
+        stage("Clonar o hub de leitura integrado") {
+            steps {
+                // Remove a pasta antiga se existir (Padrão Windows) e clona o backend
+                bat 'if exist hub-de-leitura-integrado2 rmdir /s /q hub-de-leitura-integrado2'
+                bat 'git clone --depth 1 https://github.com/EBAC-QE/hub-de-leitura-integrado2.git'
+            }
+        }
+
+        stage("Instalar dependências e subir a aplicação") {
+            steps {
+                dir('hub-de-leitura-integrado2') {
+                    bat 'call npm install'
+                    // Inicia o servidor em segundo plano no Windows (substitui o nohup)
+                    bat 'start /B npm start'
+                }
+            }
+        }
+
+        stage("Clonar o projeto de teste (Seu repositório)") {
+            steps {
+                bat 'if exist aula-M18-DevOps-avancado rmdir /s /q aula-M18-DevOps-avancado'
+                bat 'git clone --depth 1 https://github.com/alexamariano/aula-M18-DevOps-avancado.git'
+            }
+        }
+
+        stage("Instalar dependências de teste") {
+            steps {
+                dir('aula-M18-DevOps-avancado') {
+                    bat 'call npm install'
+                }
+            }
+        }
+
+        stage('Executar os testes automatizados') {
+            steps {
+                dir('aula-M18-DevOps-avancado') {
+                    // Executa o Cypress em modo headless
+                    bat 'call npx cypress run'
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            // Salva as evidências caso o Cypress tenha gerado
+            dir('aula-M18-DevOps-avancado') {
+                archiveArtifacts artifacts: 'cypress/screenshots/**/*.*,cypress/videos/**/*.*', allowEmptyArchive: true
+            }
+          
+            // Derruba o processo do Node (servidor) para não travar a porta 3000 na próxima execução
+            bat 'taskkill /F /IM node.exe || exit 0' 
+        }
+    }
+}
