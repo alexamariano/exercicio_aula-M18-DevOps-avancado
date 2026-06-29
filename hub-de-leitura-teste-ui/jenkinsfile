@@ -3,14 +3,20 @@ pipeline {
     tools { nodejs "nodejs" }
     
     environment {
-        // Cache em um caminho curto para fugir do limite do Windows
-        CYPRESS_CACHE_FOLDER = "C:\\CypressCache"
+        // Volta o cache para dentro do projeto
+        CYPRESS_CACHE_FOLDER = "${WORKSPACE}\\cypress_cache"
+        //Redireciona a pasta temporária do Windows para o Workspace
+        TEMP = "${WORKSPACE}\\temp"
+        TMP = "${WORKSPACE}\\temp"
         CI = '1' 
     }
 
     stages {
-        stage("Preparar Aplicação (Backend)") {
+        stage("Preparar Ambiente e Backend") {
             steps {
+                // Cria a pasta temporária do Jenkins antes de qualquer coisa
+                bat 'if not exist "%WORKSPACE%\\temp" mkdir "%WORKSPACE%\\temp"'
+                
                 dir('hub-de-leitura-integrado') {
                     bat 'call npm install'
                     bat 'start /B npm start'
@@ -21,7 +27,6 @@ pipeline {
         stage("Instalar dependências de teste") {
             steps {
                 dir('hub-de-leitura-teste-ui') {
-                    bat 'call npm config set ignore-scripts false'
                     bat 'call npm install'
                 }
             }
@@ -30,7 +35,7 @@ pipeline {
         stage('Executar testes') {
             steps {
                 dir('hub-de-leitura-teste-ui') {
-                    // Força a instalação na nova pasta curta e verifica se deu certo
+                    // Agora o extrator do Cypress terá permissão total para descompactar o arquivo .exe
                     bat 'call npx cypress install --force'
                     bat 'call npx cypress verify'
                     
