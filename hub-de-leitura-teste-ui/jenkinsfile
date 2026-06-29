@@ -1,57 +1,45 @@
 pipeline {
     agent any
     tools { nodejs "nodejs" }
-    
+
     environment {
-        // Volta o cache para dentro do projeto
-        CYPRESS_CACHE_FOLDER = "${WORKSPACE}\\cypress_cache"
-        //Redireciona a pasta temporária do Windows para o Workspace
-        TEMP = "${WORKSPACE}\\temp"
-        TMP = "${WORKSPACE}\\temp"
+        CYPRESS_CACHE_FOLDER = "C:\\CypressCache"
         CI = '1' 
     }
 
     stages {
-        stage("Preparar Ambiente e Backend") {
+        stage("Preparar Aplicação") {
             steps {
-                // Cria a pasta temporária do Jenkins antes de qualquer coisa
-                bat 'if not exist "%WORKSPACE%\\temp" mkdir "%WORKSPACE%\\temp"'
-                
-                dir('hub-de-leitura-integrado') {
-                    bat 'call npm install'
-                    bat 'start /B npm start'
+                dir('..\\hub-de-leitura-integrado') {
+                    bat '''
+                        call npm install
+                        start /B npm start
+                    '''
                 }
             }
         }
 
-        stage("Instalar dependências de teste") {
+        stage("Instalar dependencias de teste") {
             steps {
-                dir('hub-de-leitura-teste-ui') {
-                    bat 'call npm install'
-                }
+                bat 'call npm install'
             }
         }
 
-        stage('Executar testes') {
+        stage('Executar os testes automatizados') {
             steps {
-                dir('hub-de-leitura-teste-ui') {
-                    // Agora o extrator do Cypress terá permissão total para descompactar o arquivo .exe
-                    bat 'call npx cypress install --force'
-                    bat 'call npx cypress verify'
-                    
-                    // Executa os testes
-                    bat 'call npx cypress run'
-                }
+                bat '''
+                    call npx cypress install --force
+                    call npm test
+                '''
             }
         }
     }
 
     post {
         always {
-            dir('hub-de-leitura-teste-ui') {
-                archiveArtifacts artifacts: 'cypress/screenshots/**/*.*,cypress/videos/**/*.*', allowEmptyArchive: true
-            }
-            bat 'taskkill /F /IM node.exe || exit 0' 
+            // Se houver screenshots ou vídeos, o Jenkins vai arquivar
+            archiveArtifacts artifacts: 'cypress/screenshots/**/*.*,cypress/videos/**/*.*', allowEmptyArchive: true
+            bat 'taskkill /F /IM node.exe || exit 0'
         }
     }
 }
